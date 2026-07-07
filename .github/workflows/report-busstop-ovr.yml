@@ -1,0 +1,19 @@
+name: Report BUSSTOPS ovr
+
+on:
+  push:
+    branches:
+      - analysis/busstop-ovr-report
+    paths:
+      - tools/report_busstop_ovr.mjs
+      - .github/workflows/report-busstop-ovr.yml
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: analysis/busstop-ovr-report
+      - name: Generate report
+        run: node tools/report_busstop_ovr.mjs && cat busstop_ovr_report.md
