@@ -1,0 +1,37 @@
+name: Apply 50m grade patch
+
+on:
+  push:
+    branches:
+      - fix/profile-50m-average-grade
+    paths:
+      - tools/apply_50m_grade_patch.py
+      - tools/export_routes_csv.mjs
+      - .github/workflows/apply-50m-grade-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/profile-50m-average-grade
+      - name: Apply one-time patch
+        run: python tools/apply_50m_grade_patch.py
+      - name: Export routes CSV
+        run: node tools/export_routes_csv.mjs
+      - name: Commit patched files
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A index.html routes_data.csv tools/export_routes_csv.mjs tools/apply_50m_grade_patch.py .github/workflows/apply-50m-grade-patch.yml
+          git commit -m "Use 50m average grade and export route CSV"
+          git push
