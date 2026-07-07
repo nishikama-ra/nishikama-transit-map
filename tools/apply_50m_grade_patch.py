@@ -40,7 +40,6 @@ function maxAverageGrade(pts,windowM){
 }
 """
 if 'function interpProfileHeight' not in text:
-    text = text.replace("async function drawProfile(linePts=profilePts,label='直線'){")
     text = text.replace("async function drawProfile(linePts=profilePts,label='直線'){", helper + "async function drawProfile(linePts=profilePts,label='直線'){", 1)
 
 old_loop = """  let up=0,down=0,maxG=0;
