@@ -142,6 +142,8 @@ const MAPBOX_TOKEN='pk.eyJ1IjoibmlzaGlrYW1ha3VyYS1qaWNoaWthaSIsImEiOiJjbXJhZWN6b
 const PROFILE_ROUTE_MAX_WAYPOINTS=20;
 const PROFILE_ROUTE_MAX_DIRECT_DISTANCE_M=20000;
 const PROFILE_ROUTE_MAX_POINTS=900;
+const PROFILE_GRADE_WINDOW_M=50;
+const PROFILE_GRADE_STEP_M=10;
 
 /* ================= 基本地図 ================= */
 const map = L.map('map').setView([35.3230,139.5080],14);
@@ -752,6 +754,34 @@ async function updateProfileRoute(){
     if(runId===routeRunId)setRouteBusy(false);
   }
 }
+function interpProfileHeight(pts,d){
+  if(!pts||!pts.length)return null;
+  if(d<=pts[0].d)return pts[0].h;
+  for(let i=1;i<pts.length;i++){
+    if(d<=pts[i].d){
+      const a=pts[i-1],b=pts[i],dd=b.d-a.d;
+      if(dd<=0)return b.h;
+      const t=(d-a.d)/dd;
+      return a.h+(b.h-a.h)*t;
+    }
+  }
+  return pts[pts.length-1].h;
+}
+function maxAverageGrade(pts,windowM){
+  if(!pts||pts.length<2)return null;
+  const start=pts[0].d,end=pts[pts.length-1].d-windowM;
+  if(end<start)return null;
+  let maxG=0;
+  const check=d=>{
+    const h0=interpProfileHeight(pts,d),h1=interpProfileHeight(pts,d+windowM);
+    if(h0===null||h1===null)return;
+    const g=Math.abs((h1-h0)/windowM*100);
+    if(isFinite(g))maxG=Math.max(maxG,g);
+  };
+  for(let d=start;d<=end+1e-6;d+=PROFILE_GRADE_STEP_M)check(d);
+  check(end);
+  return maxG;
+}
 async function drawProfile(linePts=profilePts,label='直線'){
   const info=document.getElementById('clickInfo');
   if(!linePts||linePts.length<2){info.textContent='断面図には2点以上が必要です。';return;}
@@ -771,12 +801,12 @@ async function drawProfile(linePts=profilePts,label='直線'){
   const els=await Promise.all(samples.map(s=>elevAt(s.lat,s.lng)));
   const pts=samples.map((s,i)=>({d:s.d,h:els[i]})).filter(p=>p.h!==null);
   if(pts.length<2){info.textContent='標高データが取得できませんでした。';return;}
-  let up=0,down=0,maxG=0;
+  let up=0,down=0;
   for(let i=1;i<pts.length;i++){
-    const dh=pts[i].h-pts[i-1].h,dd=pts[i].d-pts[i-1].d;
+    const dh=pts[i].h-pts[i-1].h;
     if(dh>0)up+=dh;else down-=dh;
-    if(dd>3)maxG=Math.max(maxG,Math.abs(dh/dd*100));
   }
+  const maxG50=maxAverageGrade(pts,PROFILE_GRADE_WINDOW_M);
   const hs=pts.map(p=>p.h),hMin=Math.min(...hs),hMax=Math.max(...hs);
   const c=document.getElementById('profileCanvas'),ctx=c.getContext('2d');
   const W=c.width,H=c.height,L0=52,R0=14,T0=14,B0=34;
@@ -799,9 +829,11 @@ async function drawProfile(linePts=profilePts,label='直線'){
   ctx.beginPath();ctx.moveTo(X(pts[0].d),Y(pts[0].h));
   pts.forEach(p=>ctx.lineTo(X(p.d),Y(p.h)));
   ctx.strokeStyle='#c0392b';ctx.lineWidth=2;ctx.stroke();ctx.lineWidth=1;
+  const maxG50Label=maxG50===null?'—':`約${maxG50.toFixed(0)}%`;
   document.getElementById('profileStats').innerHTML=
     `${label}距離 <b>${(total/1000).toFixed(2)} km</b> ／ 最低 <b>${hMin.toFixed(1)}m</b> → 最高 <b>${hMax.toFixed(1)}m</b><br>`+
-    `累積上り <b>+${up.toFixed(0)}m</b> ／ 累積下り <b>−${down.toFixed(0)}m</b> ／ 最大勾配 約<b>${maxG.toFixed(0)}%</b>`;
+    `累積上り <b>+${up.toFixed(0)}m</b> ／ 累積下り <b>−${down.toFixed(0)}m</b><br>`+
+    `50m平均最大勾配 <b>${maxG50Label}</b>`;
   info.textContent=`${label}断面図を更新しました。続けてクリックで延長できます。`;
 }
 updateMapboxStatus(
