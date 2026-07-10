@@ -44,6 +44,12 @@
   .stn-pop .rt{font-size:10.5px;color:#666;margin-top:4px;line-height:1.5;}
   .hubstar{font-size:38px;line-height:1;text-shadow:0 0 5px #fff,0 0 5px #fff,0 0 8px #fff;}
   .leaflet-container{background:#dfe8ef;}
+  .endpoint-tooltip{font-size:10px;font-weight:700;padding:1px 5px;border:none;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+  .endpoint-tooltip.pt-start{color:#fff;background:#1b7a3d;}
+  .endpoint-tooltip.pt-end{color:#fff;background:#c62828;}
+  .leaflet-tooltip-top.pt-start::before{border-top-color:#1b7a3d;}
+  .leaflet-tooltip-top.pt-end::before{border-top-color:#c62828;}
+  #profileCanvas{cursor:pointer;}
   @media (max-width:760px){
     #app{flex-direction:column;}
     #panel{width:100%;max-width:none;height:46%;border-left:none;border-top:1px solid var(--border);}
@@ -590,6 +596,13 @@ let routeBusy=false;
 let routeRunId=0;
 const clickMarkers=L.layerGroup().addTo(map);
 let profilePts=[],profileLine=null;
+let clickMarkerList=[];
+const PT_STYLE_START={radius:7,color:'#0f4a24',weight:2,fillColor:'#1b7a3d',fillOpacity:1};
+const PT_STYLE_END={radius:7,color:'#7a1414',weight:2,fillColor:'#c62828',fillOpacity:1};
+const PT_STYLE_MID={radius:4,color:'#8a8a8a',weight:2,fillColor:'#fff',fillOpacity:1};
+let profileChartState=null;
+let profileSnapshot=null;
+let profileLocateMarker=null;
 const ROUTE_LABEL={straight:'直線',walk:'徒歩',drive:'車'};
 const ROUTE_PROFILE={walk:'walking',drive:'driving'};
 const ROUTE_BUTTONS={straight:'routeStraight',walk:'routeWalk',drive:'routeDrive'};
@@ -645,8 +658,10 @@ function setRouteMode(m){
 function clearAll(){
   routeRunId++;
   setRouteBusy(false);
-  clickMarkers.clearLayers();profilePts=[];
+  clickMarkers.clearLayers();profilePts=[];clickMarkerList=[];
   if(profileLine){map.removeLayer(profileLine);profileLine=null;}
+  if(profileLocateMarker){map.removeLayer(profileLocateMarker);profileLocateMarker=null;}
+  profileChartState=null;profileSnapshot=null;
   document.getElementById('clickInfo').textContent='クリアしました。';
   const c=document.getElementById('profileCanvas');
   c.getContext('2d').clearRect(0,0,c.width,c.height);
@@ -663,14 +678,29 @@ map.on('click',async e=>{
     document.getElementById('clickInfo').textContent=h===null?'標高データなし（海域など）':`標高 約 ${h.toFixed(1)} m`;
   }else{
     profilePts.push(e.latlng);
-    clickMarkers.addLayer(L.circleMarker(e.latlng,{radius:4,color:'#d81b60',fillColor:'#fff',fillOpacity:1,weight:2}));
+    addProfilePointMarker(e.latlng);
     if(profilePts.length>1){
       await updateProfileRoute();
     }else{
-      document.getElementById('clickInfo').textContent='続けて次の地点をクリックしてください。';
+      document.getElementById('clickInfo').textContent='始点を設定しました。続けて終点（以降の地点）をクリックしてください。';
     }
   }
 });
+function addProfilePointMarker(latlng){
+  const isStart=profilePts.length===1;
+  const style=isStart?PT_STYLE_START:PT_STYLE_END;
+  const m=L.circleMarker(latlng,style);
+  m.bindTooltip(isStart?'始点':'終点',{permanent:true,direction:'top',offset:[0,-4],className:isStart?'endpoint-tooltip pt-start':'endpoint-tooltip pt-end'});
+  clickMarkers.addLayer(m);
+  clickMarkerList.push(m);
+  // 直前の「終点」だった点は、始点でなければ中間点の見た目に戻す
+  const prevIdx=clickMarkerList.length-2;
+  if(prevIdx>0){
+    const prevMarker=clickMarkerList[prevIdx];
+    prevMarker.setStyle(PT_STYLE_MID);
+    prevMarker.unbindTooltip();
+  }
+}
 function hav(a,b){
   const Rr=6371000,dLa=(b.lat-a.lat)*Math.PI/180,dLo=(b.lng-a.lng)*Math.PI/180;
   const la1=a.lat*Math.PI/180,la2=b.lat*Math.PI/180;
@@ -799,8 +829,9 @@ async function drawProfile(linePts=profilePts,label='直線'){
     samples.push({lat:a.lat+(b.lat-a.lat)*t,lng:a.lng+(b.lng-a.lng)*t,d:target});
   }
   const els=await Promise.all(samples.map(s=>elevAt(s.lat,s.lng)));
-  const pts=samples.map((s,i)=>({d:s.d,h:els[i]})).filter(p=>p.h!==null);
+  const pts=samples.map((s,i)=>({d:s.d,h:els[i],lat:s.lat,lng:s.lng})).filter(p=>p.h!==null);
   if(pts.length<2){info.textContent='標高データが取得できませんでした。';return;}
+  if(profileLocateMarker){map.removeLayer(profileLocateMarker);profileLocateMarker=null;}
   let up=0,down=0;
   for(let i=1;i<pts.length;i++){
     const dh=pts[i].h-pts[i-1].h;
@@ -829,13 +860,70 @@ async function drawProfile(linePts=profilePts,label='直線'){
   ctx.beginPath();ctx.moveTo(X(pts[0].d),Y(pts[0].h));
   pts.forEach(p=>ctx.lineTo(X(p.d),Y(p.h)));
   ctx.strokeStyle='#c0392b';ctx.lineWidth=2;ctx.stroke();ctx.lineWidth=1;
+  drawProfileEndpoint(ctx,X(pts[0].d),Y(pts[0].h),'#1b7a3d','始');
+  drawProfileEndpoint(ctx,X(pts[pts.length-1].d),Y(pts[pts.length-1].h),'#c62828','終');
   const maxG50Label=maxG50===null?'—':`約${maxG50.toFixed(0)}%`;
   document.getElementById('profileStats').innerHTML=
     `${label}距離 <b>${(total/1000).toFixed(2)} km</b> ／ 最低 <b>${hMin.toFixed(1)}m</b> → 最高 <b>${hMax.toFixed(1)}m</b><br>`+
     `累積上り <b>+${up.toFixed(0)}m</b> ／ 累積下り <b>−${down.toFixed(0)}m</b><br>`+
     `50m平均最大勾配 <b>${maxG50Label}</b>`;
-  info.textContent=`${label}断面図を更新しました。続けてクリックで延長できます。`;
+  info.textContent=`${label}断面図を更新しました。断面図をクリックすると地図上の位置を表示します。続けてクリックで延長できます。`;
+  profileChartState={pts,total,L0,R0,T0,B0,W,H,y0,y1};
+  profileSnapshot=ctx.getImageData(0,0,W,H);
 }
+function drawProfileEndpoint(ctx,x,y,color,label){
+  ctx.save();
+  ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);
+  ctx.fillStyle=color;ctx.fill();
+  ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.fillStyle=color;ctx.font='bold 10px sans-serif';ctx.textAlign='center';
+  ctx.fillText(label,x,y-9);
+  ctx.restore();
+}
+function findNearestProfilePoint(d){
+  const pts=profileChartState.pts;
+  let nearest=pts[0],best=Infinity;
+  for(const p of pts){
+    const diff=Math.abs(p.d-d);
+    if(diff<best){best=diff;nearest=p;}
+  }
+  return nearest;
+}
+function showProfileLocateOnMap(p){
+  const ll=L.latLng(p.lat,p.lng);
+  if(profileLocateMarker){
+    profileLocateMarker.setLatLng(ll);
+  }else{
+    profileLocateMarker=L.circleMarker(ll,{radius:9,color:'#0f6bb3',weight:3,fillColor:'#fff',fillOpacity:0.9}).addTo(map);
+  }
+  profileLocateMarker.bindTooltip(`断面図上の位置<br>距離 ${(p.d/1000).toFixed(2)}km／標高 約${p.h.toFixed(1)}m`,{direction:'top',offset:[0,-8]});
+  if(!map.getBounds().contains(ll))map.panTo(ll);
+}
+document.getElementById('profileCanvas').addEventListener('click',e=>{
+  if(!profileChartState||!profileSnapshot)return;
+  const canvas=e.target;
+  const rect=canvas.getBoundingClientRect();
+  const scaleX=canvas.width/rect.width;
+  const cx=(e.clientX-rect.left)*scaleX;
+  const{total,L0,R0,W,T0,B0}=profileChartState;
+  const xw=W-L0-R0;
+  if(cx<L0||cx>W-R0)return;
+  let d=(cx-L0)/xw*total;
+  d=Math.max(0,Math.min(total,d));
+  const nearest=findNearestProfilePoint(d);
+  const ctx=canvas.getContext('2d');
+  ctx.putImageData(profileSnapshot,0,0);
+  const{y0,y1}=profileChartState;
+  const ix=L0+nearest.d/total*xw;
+  const iy=T0+(1-(nearest.h-y0)/(y1-y0))*(canvas.height-T0-B0);
+  ctx.beginPath();ctx.moveTo(ix,T0);ctx.lineTo(ix,canvas.height-B0);
+  ctx.strokeStyle='rgba(15,107,179,0.65)';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.arc(ix,iy,6,0,Math.PI*2);
+  ctx.fillStyle='#0f6bb3';ctx.fill();
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  showProfileLocateOnMap(nearest);
+  document.getElementById('clickInfo').textContent=`断面図上の距離 ${(nearest.d/1000).toFixed(2)}km・標高約${nearest.h.toFixed(1)}mの地点を地図上に表示しました。`;
+});
 updateMapboxStatus(
   MAPBOX_TOKEN
     ?'Mapbox public token設定済み。徒歩・車ルートを利用できます。'
