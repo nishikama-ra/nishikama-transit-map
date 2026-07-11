@@ -66,7 +66,7 @@
 <div id="app">
   <div id="map"></div>
   <div id="panel">
-    <h1>鎌倉西部・藤沢東部 地形 × 3拠点アクセスマップ <span class="badge">v4 実データ版</span></h1>
+    <h1>鎌倉西部・藤沢東部 地形 × 3拠点アクセスマップ</h1>
     <div class="sub">腰越・深沢地域(鎌倉市) / 片瀬地区(藤沢市) — 全109バス停+全駅から大船・鎌倉・藤沢への直通本数(毎時・1日合計・始発終発)</div>
 
     <h2>3拠点への直通アクセス表示</h2>
@@ -152,7 +152,13 @@ const PROFILE_GRADE_WINDOW_M=50;
 const PROFILE_GRADE_STEP_M=10;
 
 /* ================= 基本地図 ================= */
-const map = L.map('map').setView([35.3230,139.5080],14);
+const map = L.map('map');
+// 初期表示: PC(横769px以上)は深沢〜西鎌倉〜鎌倉山周辺にフォーカス(z15)、スマホは従来どおり(z14)
+if(window.innerWidth<=768){
+  map.setView([35.3230,139.5080],14);
+}else{
+  map.setView([35.3252,139.5132],15);
+}
 L.control.scale({imperial:false}).addTo(map);
 const basePale = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png',{
   maxZoom:18, attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
