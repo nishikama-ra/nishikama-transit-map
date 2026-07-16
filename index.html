@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>鎌倉西部・藤沢東部 地形×3拠点アクセスマップ</title><!-- v4 hybrid --->
+<title>西鎌倉周辺 地形 × 公共交通アクセスマップ</title><!-- v4 hybrid --->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -14,7 +14,8 @@
   #map{flex:1;min-width:0;}
   #panel{width:380px;max-width:46%;overflow-y:auto;background:var(--panel);border-left:1px solid var(--border);padding:12px 14px;}
   h1{font-size:15px;margin:0 0 4px;}
-  h2{font-size:13px;margin:14px 0 6px;border-bottom:1px solid var(--border);padding-bottom:3px;}
+  h2{font-size:13.5px;margin:26px 0 10px;border-top:1px solid #d6d6d1;padding:14px 2px 0 11px;position:relative;}
+  h2::before{content:"";position:absolute;left:2px;top:14px;width:4px;height:16px;border-radius:3px;background:var(--accent);}
   .sub{font-size:11px;color:#666;}
   .btnrow{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap;}
   button{font-size:12px;padding:5px 10px;border:1px solid var(--border);background:#fff;border-radius:6px;cursor:pointer;}
@@ -30,6 +31,7 @@
   #legendGrad{width:100%;height:14px;border-radius:3px;border:1px solid #ccc;}
   #legendLabels{display:flex;justify-content:space-between;font-size:10px;color:#555;}
   #accLegend{font-size:11px;line-height:1.7;margin-top:4px;}
+  .hub-key{font-size:11px;line-height:1.7;margin:4px 0 6px;}
   .dot{display:inline-block;border-radius:50%;border:1px solid #666;vertical-align:middle;margin-right:5px;}
   #profileCanvas{width:100%;height:180px;background:#fff;border:1px solid var(--border);border-radius:4px;}
   #profileStats{font-size:11.5px;line-height:1.6;margin-top:4px;}
@@ -37,18 +39,19 @@
   .note{font-size:10.5px;color:#777;line-height:1.5;margin-top:10px;}
   .badge{display:inline-block;font-size:10px;background:#eee;border-radius:3px;padding:1px 4px;margin-left:4px;color:#555;}
   .popup-el{font-size:13px;}
-  .stn-pop{font-size:12px;min-width:220px;max-width:280px;}
+  .stn-pop{font-size:12px;min-width:270px;max-width:330px;}
   .stn-pop h3{margin:0 0 5px;font-size:13px;}
   .stn-pop table{border-collapse:collapse;width:100%;font-size:11.5px;}
   .stn-pop td,.stn-pop th{border-bottom:1px solid #eee;padding:3px 4px;text-align:left;}
   .stn-pop .rt{font-size:10.5px;color:#666;margin-top:4px;line-height:1.5;}
   .hubstar{font-size:38px;line-height:1;text-shadow:0 0 5px #fff,0 0 5px #fff,0 0 8px #fff;}
   .leaflet-container{background:#dfe8ef;}
-  .endpoint-tooltip{font-size:10px;font-weight:700;padding:1px 5px;border:none;box-shadow:0 1px 3px rgba(0,0,0,.25);}
-  .endpoint-tooltip.pt-start{color:#fff;background:#1b7a3d;}
-  .endpoint-tooltip.pt-end{color:#fff;background:#c62828;}
-  .leaflet-tooltip-top.pt-start::before{border-top-color:#1b7a3d;}
-  .leaflet-tooltip-top.pt-end::before{border-top-color:#c62828;}
+  .route-point-icon{background:transparent!important;border:none!important;}
+  .route-point-pin{width:28px;height:28px;border:2px solid #fff;border-radius:50% 50% 50% 0;box-shadow:0 1px 5px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;transform:rotate(-45deg);color:#fff;font-size:12px;font-weight:800;}
+  .route-point-pin span{transform:rotate(45deg);line-height:1;}
+  .route-point-pin.pt-start{background:#1b7a3d;}
+  .route-point-pin.pt-mid{background:#0f6bb3;}
+  .route-point-pin.pt-end{background:#c62828;}
   #profileCanvas{cursor:pointer;}
   #profileDialog{border:1px solid var(--border);border-radius:8px;padding:12px;max-width:none;}
   #profileDialog::backdrop{background:rgba(0,0,0,.45);}
@@ -56,6 +59,16 @@
   #profileDialogBar button{font-size:12px;padding:4px 12px;cursor:pointer;}
   #profileCanvasBig{background:#fff;border:1px solid var(--border);border-radius:4px;cursor:pointer;display:block;}
   #profileStatsBig{font-size:13px;line-height:1.7;margin-top:6px;}
+  .tool-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 11px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .tool-card-title{font-size:12.5px;font-weight:700;margin-bottom:2px;}
+  .tool-card .btnrow{margin:6px 0;}
+  .route-status{font-size:12px;font-weight:700;margin:3px 0 2px;}
+  .map-action-menu{min-width:220px;padding:2px 1px 3px;}
+  .map-action-menu b{display:block;margin-bottom:9px;color:#344454;font-size:13px;text-align:center;}
+  .map-action-menu button{display:block;width:100%;margin-top:7px;padding:9px 11px;border-radius:10px;text-align:left;font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.06);transition:transform .12s ease,box-shadow .12s ease;}
+  .map-action-menu button:hover{filter:none;transform:translateY(-1px);box-shadow:0 3px 7px rgba(0,0,0,.1);}
+  .map-action-route{border-color:#b7dbc4;background:#f1faf4;}
+  .map-action-elevation{border-color:#efd29c;background:#fff8e9;}
   @media (max-width:760px){
     #app{flex-direction:column;}
     #panel{width:100%;max-width:none;height:46%;border-left:none;border-top:1px solid var(--border);}
@@ -64,7 +77,6 @@
 
   /* Mapbox route profile controls */
   button:disabled{opacity:.55;cursor:not-allowed;}
-  #mapboxStatus{font-size:10.5px;color:#777;line-height:1.5;margin-top:-2px;}
   .routeBtn.active{background:#d81b60;color:#fff;border-color:#d81b60;}
 </style>
 </head>
@@ -72,10 +84,66 @@
 <div id="app">
   <div id="map"></div>
   <div id="panel">
-    <h1>鎌倉西部・藤沢東部 地形 × 3拠点アクセスマップ</h1>
-    <div class="sub">腰越・深沢地域(鎌倉市) / 片瀬地区(藤沢市) — 全109バス停+全駅から大船・鎌倉・藤沢への直通本数(毎時・1日合計・始発終発)</div>
+    <h1>西鎌倉周辺 地形 × 公共交通アクセスマップ</h1>
+    <div class="sub">駅・バス停：腰越・深沢地域(鎌倉市) / 片瀬地区(藤沢市) を中心に表示しています。</div>
 
-    <h2>3拠点への直通アクセス表示</h2>
+    <h2>地図表示選択</h2>
+    <label class="chk"><input type="checkbox" id="lyrAcc" checked> 停留所・駅のアクセス表示</label>
+    <label class="chk"><input type="checkbox" id="lyrRail" checked> 鉄道・モノレール路線</label>
+    <label class="chk"><input type="checkbox" id="lyrElev" checked> 標高の色分け
+      <span>不透明度 <input type="range" id="elevOpacity" min="0" max="100" value="55"></span></label>
+    <label class="chk"><input type="checkbox" id="lyrHill" checked> 陰影起伏（立体感）</label>
+    <label class="chk"><input type="checkbox" id="lyrDist"> 地区の範囲表示（腰越・深沢・片瀬）</label>
+
+    <h2>標高凡例</h2>
+    <canvas id="legendGrad" width="300" height="14"></canvas>
+    <div id="legendLabels"><span>0m</span><span>10</span><span>20</span><span>30</span><span>50</span><span>70</span><span>100m+</span></div>
+
+    <h2>ルート作成・高低差表示</h2>
+    <div id="clickInfo">地図上の調べたい場所をクリックしてください。バス停・駅はクリックすると詳細を表示します。</div>
+
+    <div class="tool-card">
+      <div class="tool-card-title">ルート作成</div>
+      <div class="route-status" id="routeStatus">ルート未作成</div>
+      <div class="sub">地図をクリックするたびに番号付きピンが置かれます。1点目が始点、最後の点が終点、その間は経由点になります。</div>
+      <div class="btnrow">
+        <button id="btnUndo" disabled>1点戻す</button>
+        <button id="modeNone" disabled>操作を終了</button>
+        <button id="btnClear" disabled>ルートを消去</button>
+      </div>
+    </div>
+
+    <div class="tool-card">
+      <div class="tool-card-title">高低差表示</div>
+      <div class="sub">ルートが2地点以上になると、徒歩ルートで自動表示します。車・直線にも切り替えられます。</div>
+      <div class="btnrow" id="routeModeRow">
+        <button class="routeBtn" id="routeWalk" disabled>徒歩</button>
+        <button class="routeBtn" id="routeDrive" disabled>車</button>
+        <button class="routeBtn" id="routeStraight" disabled>直線</button>
+      </div>
+      <canvas id="profileCanvas" width="640" height="360"></canvas>
+      <div class="btnrow">
+        <button id="btnProfileZoom" disabled>高低差表示を拡大</button>
+      </div>
+      <div id="profileStats">—</div>
+    </div>
+
+    <div class="tool-card">
+      <div class="tool-card-title">Google Map</div>
+      <div class="sub">ルートの始点と終点をGoogle Mapの経路検索で開きます（途中の地点は経由地として設定されません）。</div>
+      <div class="btnrow">
+        <button id="btnTransit" disabled>Google Mapで表示</button>
+      </div>
+    </div>
+
+    <dialog id="profileDialog">
+      <div id="profileDialogBar"><b>高低差表示（拡大）</b><button id="btnProfileClose">閉じる</button></div>
+      <canvas id="profileCanvasBig"></canvas>
+      <div id="profileStatsBig">—</div>
+      <div class="sub">グラフをクリックすると地図上の位置を表示します（ESCでも閉じられます）</div>
+    </dialog>
+
+    <h2>3拠点（大船・鎌倉・藤沢）への直通アクセス表示</h2>
     <div class="btnrow">
       <button class="hubBtn active" id="hub_total">合計</button>
       <button class="hubBtn" id="hub_O">大船へ</button>
@@ -87,59 +155,16 @@
       <button id="bandRush">平日朝(7〜8時台)</button>
     </div>
     <div id="accLegend"></div>
-    <div class="sub">丸の色の濃さ・大きさ＝乗り換えなしで行ける毎時本数。クリックで3拠点の内訳と系統・標高を表示。</div>
 
-    <h2>系統別の本数（平日実測・1日計と始発終発つき）</h2>
-    <div class="sub">1日＝片方向の概数。始発・終発＝起点駅発の時刻。</div>
-    <div class="sub" id="dataSrc" style="color:#0a7;">データ：内蔵値を使用中</div>
+    <h2>系統別の本数（平日本数・時間帯）</h2>
+    <div class="hub-key"><span style="color:#d81b60">●大船</span>　<span style="color:#00834a">●鎌倉</span>　<span style="color:#1568b8">●藤沢</span></div>
     <div id="freqWrap"><table class="freq" id="freqTable"></table></div>
 
-    <h2>レイヤ</h2>
-    <label class="chk"><input type="checkbox" id="lyrAcc" checked> 停留所・駅のアクセス表示</label>
-    <label class="chk"><input type="checkbox" id="lyrRail" checked> 鉄道・モノレール路線</label>
-    <label class="chk"><input type="checkbox" id="lyrElev" checked> 標高の色分け
-      <span>不透明度 <input type="range" id="elevOpacity" min="0" max="100" value="55"></span></label>
-    <label class="chk"><input type="checkbox" id="lyrHill" checked> 陰影起伏（立体感）</label>
-    <label class="chk"><input type="checkbox" id="lyrDist"> 地区の範囲</label>
-
-    <h2>標高凡例</h2>
-    <canvas id="legendGrad" width="300" height="14"></canvas>
-    <div id="legendLabels"><span>0m</span><span>10</span><span>20</span><span>30</span><span>50</span><span>70</span><span>100m+</span></div>
-
-    <h2>標高ツール</h2>
-    <div class="btnrow">
-      <button id="modeNone" class="active">なし</button>
-      <button id="modeElev">クリックで標高</button>
-      <button id="modeProfile">断面図モード</button>
-      <button id="btnClear">クリア</button>
-    </div>
-    <div class="btnrow" id="routeModeRow">
-      <button class="routeBtn active" id="routeStraight">直線</button>
-      <button class="routeBtn" id="routeWalk">徒歩</button>
-      <button class="routeBtn" id="routeDrive">車</button>
-    </div>
-    <div class="btnrow">
-      <button id="btnTransit">公共交通で検索（Googleマップ）</button>
-      <button id="btnProfileZoom">断面図を拡大</button>
-    </div>
-    <div class="sub" id="mapboxStatus">断面図モードで2点以上をクリックします。徒歩・車はMapbox public token設定後に利用できます。</div>
-    <div id="clickInfo">バス停・駅をクリックすると詳細を表示します。標高や断面図を調べるにはモードを選択してください。</div>
-    <canvas id="profileCanvas" width="640" height="360"></canvas>
-    <div id="profileStats">—</div>
-    <dialog id="profileDialog">
-      <div id="profileDialogBar"><b>断面図（拡大表示）</b><button id="btnProfileClose">閉じる</button></div>
-      <canvas id="profileCanvasBig"></canvas>
-      <div id="profileStatsBig">—</div>
-      <div class="sub">グラフをクリックすると地図上の位置を表示します（ESCでも閉じられます）</div>
-    </dialog>
-
     <div class="note">
-      <b>データについて</b><br>
-      停留所の位置・名称：国土数値情報 バス停留所データ(P11, 2022年度) 106停留所。2025〜26年の再編(京急バス撤退・江ノ電バス移管、K7/K11/N9/N91/N95新設等)を反映し、現行系統(2026年5月路線図・7月時刻表)に対応付け。旧「目白山」等の廃止停留所は除外。<br>
-      本数：江ノ電バス・京浜急行バス公式時刻表検索(2026年7月時点・平日)の実測値。日中=10〜16時台平均、朝=7〜8時台平均(拠点駅発の本数から算出のため、朝の拠点方面は実際より多い場合があります)。K5・K7・N95系統と0.5本/時未満の値は概算。<br>
-      鉄道：駅位置・路線形状は国土数値情報 鉄道データ(N02-22)の実データ。1日本数と始発・終発は起点駅発の平日値(K5・K7・C1・F31・F35は概算)。<br>
-      本数・始発終発: 全停留所・全駅とも公式時刻表の実測値(平日)です。バス109停留所は停留所時刻表を系統別に全数カウント。鉄道は端点駅の実測に駅間所要を補正して各駅に展開(±1分程度)。「直通なし」も確定情報です。往復同経路の循環系統の外回り便は復路側でのみ計上。かながわ女性センター・湘南港桟橋(F31系統)、西浜・鵠沼海岸・公園西部駐車場前(F35系統)は平日運行なしを確認済み。江ノ電の鎌倉方面は極楽寺止まり(1本/日)を、モノレールの大船方面は湘南深沢止まり(3本/日・西鎌倉以南)を直通から除外。<br>
-      標高：国土地理院 標高タイル(DEM5A、欠損部DEM10B)。ダイヤ改正で変わるため正確な時刻は各社公式サイトでご確認ください。
+      <b>注意点</b><br>
+      運行本数・時間帯は2026年7月時点の平日ダイヤを基にした参考値です。ダイヤ改正や臨時運行などにより変わる場合があるため、利用時は各事業者の公式案内をご確認ください。<br>
+      <b>出典</b><br>
+      停留所・鉄道路線：国土交通省「国土数値情報」（バス停留所データ P11・鉄道データ N02-22）／運行情報：江ノ電バス、京浜急行バス、江ノ島電鉄、小田急電鉄、湘南モノレールの公式時刻表・路線図／標高：国土地理院「標高タイル」（DEM5A・DEM10B）
     </div>
   </div>
 </div>
@@ -497,8 +522,8 @@ DISTRICTS.forEach(d=>{
   }
 });
 
-L.circleMarker([35.3383,139.5070],{radius:14,color:'#f68b1e',weight:2,dashArray:'2 2',fillColor:'#fff',fillOpacity:1})
- .bindTooltip('村岡新駅（2032年頃開業予定・位置は概略）<br>※アクセス集計には未算入',{direction:'top'}).addTo(map);
+L.circleMarker([35.3383,139.5070],{radius:14,color:'#f68b1e',weight:2,dashArray:'2 2',fillColor:'#fff',fillOpacity:1,bubblingMouseEvents:false})
+ .bindTooltip('村岡新駅（2032年頃開業予定・位置は概略）',{direction:'top'}).addTo(map);
 
 function accColor(hub,f){
   if(f<=0)return '#c9c9c9';
@@ -529,13 +554,13 @@ function stopPopup(st){
   const rows=['O','K','F'].map(h=>{
     const fd=freqTo(st,h,'day'),fr=freqTo(st,h,'rush'),tt=dayTotalTo(st,h);
     const o=st.ovr&&st.ovr[h];
-    const fl=o&&o.t>0?`<br><span style="font-size:9.5px;color:#888">${o.fs}〜${o.ls}</span>`:'';
-    return `<tr><td><span class="dot" style="width:10px;height:10px;background:${HUBS[h].hex}"></span>${HUBS[h].n}${fl}</td>
-      <td>${fd>0?`<b>${fmt(fd)}</b>`:'直通なし'}</td><td>${fr>0?fmt(fr):'—'}</td><td>${tt>0?'<b>'+Math.round(tt)+'本</b>':'—'}</td></tr>`;
+    const firstLast=o&&o.t>0?`${o.fs}〜${o.ls}`:'—';
+    return `<tr><td><span class="dot" style="width:10px;height:10px;background:${HUBS[h].hex}"></span>${HUBS[h].n}</td>
+      <td>${fd>0?`<b>${fmt(fd)}</b>`:'直通なし'}</td><td>${fr>0?fmt(fr):'—'}</td><td>${tt>0?'<b>'+Math.round(tt)+'本</b>':'—'}</td><td style="white-space:nowrap">${firstLast}</td></tr>`;
   }).join('');
   const rts=st.r.map(id=>{
     const rt=R[id]; if(!rt) return id;
-    return `${rt.n}<br><span style="color:#888">　1日約${rt.t}本／始発${rt.fs}〜終発${rt.ls}</span>`;
+    return rt.n;
   }).join('<br>');
   const links=[];
   if(st.eid)links.push(`<a href="${enodenStopUrl(st.eid)}" target="_blank" rel="noopener">公式時刻表（江ノ電バス）</a>`);
@@ -543,8 +568,8 @@ function stopPopup(st){
   if(st.tt)links.push(`<a href="${st.tt}" target="_blank" rel="noopener">駅情報・時刻表（公式）</a>`);
   const linkHtml=links.length?`<div class="rt">${links.join('<br>')}</div>`:'';
   return `<div class="stn-pop"><h3>${st.n}${st.rail?'':'<span class="badge">'+(st.d||'')+'・バス停</span>'}</h3>
-    <table><tr><th>拠点</th><th>日中</th><th>朝</th><th>1日計</th></tr>${rows}</table>
-    <div class="rt"><b>系統（1日本数・始発終発は起点駅発の平日値）：</b><br>${rts}</div>${linkHtml}
+    <table><tr><th>拠点</th><th>日中</th><th>朝</th><th>1日計</th><th>始発〜終発</th></tr>${rows}</table>
+    <div class="rt"><b>利用できる系統：</b><br>${rts}</div>${linkHtml}
     <div class="rt elevslot">標高取得中…</div></div>`;
 }
 function buildAccess(){
@@ -556,7 +581,8 @@ function buildAccess(){
       fillColor:accColor(selHub,f),
       fillOpacity:0.95,
       color:st.rail?'#222':'#666',
-      weight:st.rail?2:1
+      weight:st.rail?2:1,
+      bubblingMouseEvents:false
     }).bindTooltip(`${st.n}：${selHub==='total'?'3拠点計':HUBS[selHub].n+'へ'} ${fmt(f)}`,{direction:'top'})
       .bindPopup(stopPopup(st));
     m.on('popupopen',async e=>{
@@ -591,7 +617,6 @@ function renderTable(){
     const hubs=rt.hubs.map(h=>`<span style="color:${HUBS[h].hex}">●</span>`).join('')||'—';
     html+=`<tr><td>${rt.rail?'<b>'+rt.n+'</b>':rt.n}</td><td><b>${fmt(rt[f])}</b></td><td>${rt.t?'約'+rt.t+'本':'—'}</td><td style="white-space:nowrap">${rt.fs}〜${rt.ls}</td><td>${hubs}</td></tr>`;
   });
-  html+=`<tr><td colspan="3" style="font-size:10px;color:#888">●の色：<span style="color:${HUBS.O.hex}">大船</span> / <span style="color:${HUBS.K.hex}">鎌倉</span> / <span style="color:${HUBS.F.hex}">藤沢</span></td></tr>`;
   t.innerHTML=html;
 }
 renderTable();
@@ -628,15 +653,11 @@ document.getElementById('lyrDist').onchange=e=>{e.target.checked?distGroup.addTo
 
 /* ================= クリック標高 / 断面図 ================= */
 let mode='none';
-let profileRouteMode='straight';
+let profileRouteMode=null;
 let routeBusy=false;
 let routeRunId=0;
 const clickMarkers=L.layerGroup().addTo(map);
 let profilePts=[],profileLine=null;
-let clickMarkerList=[];
-const PT_STYLE_START={radius:7,color:'#0f4a24',weight:2,fillColor:'#1b7a3d',fillOpacity:1};
-const PT_STYLE_END={radius:7,color:'#7a1414',weight:2,fillColor:'#c62828',fillOpacity:1};
-const PT_STYLE_MID={radius:4,color:'#8a8a8a',weight:2,fillColor:'#fff',fillOpacity:1};
 let profileData=null;
 let profileLocateMarker=null;
 const ROUTE_LABEL={straight:'直線',walk:'徒歩',drive:'車'};
@@ -644,64 +665,55 @@ const ROUTE_PROFILE={walk:'walking',drive:'driving'};
 const ROUTE_BUTTONS={straight:'routeStraight',walk:'routeWalk',drive:'routeDrive'};
 
 document.getElementById('modeNone').onclick=()=>setMode('none');
-document.getElementById('modeElev').onclick=()=>setMode('elev');
-document.getElementById('modeProfile').onclick=()=>setMode('profile');
+document.getElementById('btnUndo').onclick=undoLastPoint;
 document.getElementById('btnClear').onclick=clearAll;
 document.getElementById('routeStraight').onclick=()=>setRouteMode('straight');
 document.getElementById('routeWalk').onclick=()=>setRouteMode('walk');
 document.getElementById('routeDrive').onclick=()=>setRouteMode('drive');
 
-function updateMapboxStatus(msg,ok){
-  const el=document.getElementById('mapboxStatus');
-  if(!el)return;
-  el.textContent=msg;
-  el.style.color=ok===true?'#0a7':(ok===false?'#c60':'#777');
-}
 function profileHelpText(){
-  if(profileRouteMode==='straight')return '直線モード：地図を順にクリックすると、直線経路の断面図を作成します。';
-  if(!MAPBOX_TOKEN)return `${ROUTE_LABEL[profileRouteMode]}モード：Mapbox public tokenを設定すると利用できます。`;
-  return `${ROUTE_LABEL[profileRouteMode]}モード：地図を順にクリックすると、Mapboxの経路に沿って断面図を作成します。`;
+  if(profilePts.length===0)return 'この地点を始点にしてルートを作ります。';
+  if(profilePts.length===1)return '始点を設定しました。続けて終点をクリックしてください。';
+  return `ルート作成中です。続けて経由点・終点を追加できます（現在${profilePts.length}地点）。`;
+}
+function updateRouteActionState(){
+  const count=profilePts.length;
+  document.getElementById('routeStatus').textContent=
+    count===0?'ルート未作成'
+    :mode==='profile'?`ルート作成中　${count} / ${PROFILE_ROUTE_MAX_WAYPOINTS}地点`
+    :`ルート　${count} / ${PROFILE_ROUTE_MAX_WAYPOINTS}地点`;
+  document.getElementById('btnUndo').disabled=count===0||routeBusy;
+  document.getElementById('modeNone').disabled=mode!=='profile'||routeBusy;
+  document.getElementById('btnClear').disabled=count===0||routeBusy;
+  Object.entries(ROUTE_BUTTONS).forEach(([key,id])=>{
+    const el=document.getElementById(id);
+    el.disabled=count<2||routeBusy;
+    el.classList.toggle('active',key===profileRouteMode&&count>=2);
+  });
+  document.getElementById('btnTransit').disabled=count<2;
+  document.getElementById('btnProfileZoom').disabled=!profileData;
 }
 function setRouteBusy(b){
   routeBusy=b;
-  Object.values(ROUTE_BUTTONS).forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=b;});
-  const modeBtn=document.getElementById('modeProfile');
-  if(modeBtn)modeBtn.disabled=b;
+  updateRouteActionState();
 }
 function setMode(m){
   mode=m;
-  document.getElementById('modeNone').classList.toggle('active',m==='none');
-  document.getElementById('modeElev').classList.toggle('active',m==='elev');
-  document.getElementById('modeProfile').classList.toggle('active',m==='profile');
-  document.getElementById('clickInfo').textContent=
-    m==='none'?'バス停・駅をクリックすると詳細を表示します。標高や断面図を調べるにはモードを選択してください。'
-    :m==='elev'?'地図をクリックすると標高を表示します。'
-    :profileHelpText();
+  document.getElementById('clickInfo').textContent=m==='profile'
+    ?profileHelpText()
+    :'操作を終了しました。地図をクリックすると、ルートへの追加または標高の確認を選べます。';
+  updateRouteActionState();
 }
 function setRouteMode(m){
-  if(routeBusy)return;
+  if(routeBusy||profilePts.length<2)return;
   profileRouteMode=m;
-  Object.entries(ROUTE_BUTTONS).forEach(([key,id])=>{
-    const el=document.getElementById(id);
-    if(el)el.classList.toggle('active',key===m);
-  });
-  updateMapboxStatus(
-    MAPBOX_TOKEN
-      ?`${ROUTE_LABEL[m]}モードを選択中。徒歩・車はMapbox Directions APIを使用します。`
-      :'徒歩・車ルートは MAPBOX_TOKEN 設定後に利用できます。',
-    !!MAPBOX_TOKEN || m==='straight'
-  );
-  if(mode==='profile')document.getElementById('clickInfo').textContent=profileHelpText();
-  if(profilePts.length>1)updateProfileRoute();
+  updateRouteActionState();
+  updateProfileRoute();
 }
-function clearAll(){
-  routeRunId++;
-  setRouteBusy(false);
-  clickMarkers.clearLayers();profilePts=[];clickMarkerList=[];
+function clearProfileOutput(){
   if(profileLine){map.removeLayer(profileLine);profileLine=null;}
   if(profileLocateMarker){map.removeLayer(profileLocateMarker);profileLocateMarker=null;}
   profileData=null;
-  document.getElementById('clickInfo').textContent='クリアしました。';
   for(const id of ['profileCanvas','profileCanvasBig']){
     const c=document.getElementById(id);
     c.getContext('2d').clearRect(0,0,c.width,c.height);
@@ -712,41 +724,111 @@ function clearAll(){
   const dlg=document.getElementById('profileDialog');
   if(dlg.open)dlg.close();
 }
-map.on('click',async e=>{
-  if(mode==='none')return;
-  if(routeBusy){
-    document.getElementById('clickInfo').textContent='ルート取得中です。完了後にクリックしてください。';
-    return;
-  }
-  if(mode==='elev'){
-    const h=await elevAt(e.latlng.lat,e.latlng.lng);
-    L.popup().setLatLng(e.latlng).setContent(`<div class="popup-el"><b>${h===null?'—':h.toFixed(1)+' m'}</b><br><span style="color:#666;font-size:11px;">${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}</span></div>`).openOn(map);
-    document.getElementById('clickInfo').textContent=h===null?'標高データなし（海域など）':`標高 約 ${h.toFixed(1)} m`;
+function clearAll(){
+  routeRunId++;
+  routeBusy=false;
+  mode='none';
+  clickMarkers.clearLayers();profilePts=[];
+  profileRouteMode=null;
+  clearProfileOutput();
+  document.getElementById('clickInfo').textContent='ルートを消去しました。地図をクリックすると、新しいルートの作成または標高の確認を選べます。';
+  updateRouteActionState();
+}
+function rebuildProfileMarkers(){
+  clickMarkers.clearLayers();
+  profilePts.forEach((latlng,index)=>{
+    const isStart=index===0;
+    const isEnd=index===profilePts.length-1&&profilePts.length>1;
+    const pointClass=isStart?'pt-start':(isEnd?'pt-end':'pt-mid');
+    const pointLabel=isStart?'始点':(isEnd?'終点':`経由点 ${index+1}`);
+    const marker=L.marker(latlng,{
+      icon:L.divIcon({
+        className:'route-point-icon',
+        html:`<div class="route-point-pin ${pointClass}"><span>${index+1}</span></div>`,
+        iconSize:[30,38],iconAnchor:[15,36],tooltipAnchor:[0,-31]
+      }),
+      bubblingMouseEvents:false,
+      zIndexOffset:1200
+    }).bindTooltip(pointLabel,{direction:'top'});
+    clickMarkers.addLayer(marker);
+  });
+}
+async function undoLastPoint(){
+  if(routeBusy||profilePts.length===0)return;
+  routeRunId++;
+  profilePts.pop();
+  clearProfileOutput();
+  rebuildProfileMarkers();
+  if(profilePts.length===0)profileRouteMode=null;
+  updateRouteActionState();
+  if(profilePts.length>=2){
+    if(!profileRouteMode)profileRouteMode='walk';
+    updateRouteActionState();
+    await updateProfileRoute();
   }else{
-    profilePts.push(e.latlng);
-    addProfilePointMarker(e.latlng);
-    if(profilePts.length>1){
-      await updateProfileRoute();
-    }else{
-      document.getElementById('clickInfo').textContent='始点を設定しました。続けて終点（以降の地点）をクリックしてください。';
-    }
-  }
-});
-function addProfilePointMarker(latlng){
-  const isStart=profilePts.length===1;
-  const style=isStart?PT_STYLE_START:PT_STYLE_END;
-  const m=L.circleMarker(latlng,style);
-  m.bindTooltip(isStart?'始点':'終点',{permanent:true,direction:'top',offset:[0,-4],className:isStart?'endpoint-tooltip pt-start':'endpoint-tooltip pt-end'});
-  clickMarkers.addLayer(m);
-  clickMarkerList.push(m);
-  // 直前の「終点」だった点は、始点でなければ中間点の見た目に戻す
-  const prevIdx=clickMarkerList.length-2;
-  if(prevIdx>0){
-    const prevMarker=clickMarkerList[prevIdx];
-    prevMarker.setStyle(PT_STYLE_MID);
-    prevMarker.unbindTooltip();
+    document.getElementById('clickInfo').textContent=profilePts.length===1
+      ?'最後の地点を取り消しました。始点は残っています。地図をクリックして次の地点を追加できます。'
+      :'ルートの地点をすべて取り消しました。地図をクリックすると新しく作成できます。';
   }
 }
+async function showElevationAt(latlng){
+  document.getElementById('clickInfo').textContent='この地点の標高を確認しています…';
+  const h=await elevAt(latlng.lat,latlng.lng);
+  L.popup().setLatLng(latlng).setContent(`<div class="popup-el"><b>${h===null?'—':h.toFixed(1)+' m'}</b><br><span style="color:#666;font-size:11px;">${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}</span></div>`).openOn(map);
+  document.getElementById('clickInfo').textContent=h===null?'標高データなし（海域など）':`標高 約 ${h.toFixed(1)} m`;
+}
+async function addRoutePoint(latlng){
+  if(routeBusy){
+    routeRunId++;
+    routeBusy=false;
+  }
+  if(profilePts.length>=PROFILE_ROUTE_MAX_WAYPOINTS){
+    document.getElementById('clickInfo').textContent=`ルートは最大${PROFILE_ROUTE_MAX_WAYPOINTS}地点です。不要な地点を1点戻してから追加してください。`;
+    return;
+  }
+  profilePts.push(latlng);
+  rebuildProfileMarkers();
+  if(profilePts.length===2&&!profileRouteMode)profileRouteMode='walk';
+  updateRouteActionState();
+  if(profilePts.length>1){
+    await updateProfileRoute();
+  }else{
+    document.getElementById('clickInfo').textContent='始点を設定しました。続けて終点をクリックしてください。';
+  }
+}
+function openMapActionChooser(latlng){
+  const menu=document.createElement('div');
+  menu.className='map-action-menu';
+  const title=document.createElement('b');
+  title.textContent='この地点で何をしますか？';
+  const routeButton=document.createElement('button');
+  routeButton.type='button';
+  routeButton.className='map-action-route';
+  routeButton.textContent=profilePts.length?'➕ ルートに地点を追加':'🧭 ルートの始点にする';
+  const elevationButton=document.createElement('button');
+  elevationButton.type='button';
+  elevationButton.className='map-action-elevation';
+  elevationButton.textContent='⛰️ この地点の標高を見る';
+  menu.append(title,routeButton,elevationButton);
+  L.DomEvent.disableClickPropagation(menu);
+  const popup=L.popup().setLatLng(latlng).setContent(menu).openOn(map);
+  routeButton.onclick=()=>{
+    map.closePopup(popup);
+    setMode('profile');
+    addRoutePoint(latlng);
+  };
+  elevationButton.onclick=()=>{
+    map.closePopup(popup);
+    showElevationAt(latlng);
+  };
+}
+map.on('click',e=>{
+  if(mode==='none'){
+    openMapActionChooser(e.latlng);
+    return;
+  }
+  addRoutePoint(e.latlng);
+});
 function hav(a,b){
   const Rr=6371000,dLa=(b.lat-a.lat)*Math.PI/180,dLo=(b.lng-a.lng)*Math.PI/180;
   const la1=a.lat*Math.PI/180,la2=b.lat*Math.PI/180;
@@ -793,8 +875,10 @@ async function fetchMapboxRoute(pts,routeMode){
 }
 async function updateProfileRoute(){
   const info=document.getElementById('clickInfo');
-  if(profileLine){map.removeLayer(profileLine);profileLine=null;}
+  clearProfileOutput();
+  updateRouteActionState();
   if(profilePts.length<2){info.textContent='続けて次の地点をクリックしてください。';return;}
+  if(!profileRouteMode){profileRouteMode='walk';updateRouteActionState();}
   if(profileRouteMode==='straight'){
     profileLine=L.polyline(profilePts,{color:'#d81b60',weight:3,dashArray:'4 5'}).addTo(map);
     await drawProfile(profilePts,ROUTE_LABEL.straight);
@@ -860,8 +944,8 @@ function maxAverageGrade(pts,windowM){
 }
 async function drawProfile(linePts=profilePts,label='直線'){
   const info=document.getElementById('clickInfo');
-  if(!linePts||linePts.length<2){info.textContent='断面図には2点以上が必要です。';return;}
-  info.textContent='断面図を計算中…';
+  if(!linePts||linePts.length<2){info.textContent='高低差表示には2地点以上が必要です。';return;}
+  info.textContent='高低差を計算中…';
   const segs=[];let total=0;
   for(let i=0;i<linePts.length-1;i++){const d=hav(linePts[i],linePts[i+1]);segs.push(d);total+=d;}
   if(!isFinite(total)||total<=0){info.textContent='距離を計算できませんでした。';return;}
@@ -887,6 +971,7 @@ async function drawProfile(linePts=profilePts,label='直線'){
   const hs=pts.map(p=>p.h),hMin=Math.min(...hs),hMax=Math.max(...hs);
   profileData={pts,total};
   renderProfileChart(document.getElementById('profileCanvas'));
+  updateRouteActionState();
   if(document.getElementById('profileDialog').open)renderProfileBig();
   const maxG50Label=maxG50===null?'—':`約${maxG50.toFixed(0)}%`;
   const statsHtml=
@@ -895,7 +980,7 @@ async function drawProfile(linePts=profilePts,label='直線'){
     `50m平均最大勾配 <b>${maxG50Label}</b>`;
   document.getElementById('profileStats').innerHTML=statsHtml;
   document.getElementById('profileStatsBig').innerHTML=statsHtml;
-  info.textContent=`${label}断面図を更新しました。断面図をクリックすると地図上の位置を表示します。続けてクリックで延長できます。`;
+  info.textContent=`${label}ルートの高低差を更新しました。グラフをクリックすると地図上の位置を表示します。続けて地図をクリックしてルートを延長できます。`;
 }
 // 断面図をcanvasへ描画(小・拡大共通)。k=基準幅640pxに対する倍率で文字・余白を拡大
 function renderProfileChart(canvas){
@@ -965,7 +1050,7 @@ function showProfileLocateOnMap(p){
   }else{
     profileLocateMarker=L.circleMarker(ll,{radius:9,color:'#0f6bb3',weight:3,fillColor:'#fff',fillOpacity:0.9}).addTo(map);
   }
-  profileLocateMarker.bindTooltip(`断面図上の位置<br>距離 ${(p.d/1000).toFixed(2)}km／標高 約${p.h.toFixed(1)}m`,{direction:'top',offset:[0,-8]});
+  profileLocateMarker.bindTooltip(`高低差グラフ上の位置<br>距離 ${(p.d/1000).toFixed(2)}km／標高 約${p.h.toFixed(1)}m`,{direction:'top',offset:[0,-8]});
   if(!map.getBounds().contains(ll))map.panTo(ll);
 }
 function handleProfileCanvasClick(e){
@@ -990,14 +1075,14 @@ function handleProfileCanvasClick(e){
   ctx.fillStyle='#0f6bb3';ctx.fill();
   ctx.strokeStyle='#fff';ctx.lineWidth=2*g.k;ctx.stroke();
   showProfileLocateOnMap(nearest);
-  document.getElementById('clickInfo').textContent=`断面図上の距離 ${(nearest.d/1000).toFixed(2)}km・標高約${nearest.h.toFixed(1)}mの地点を地図上に表示しました。`;
+  document.getElementById('clickInfo').textContent=`高低差グラフ上の距離 ${(nearest.d/1000).toFixed(2)}km・標高約${nearest.h.toFixed(1)}mの地点を地図上に表示しました。`;
 }
 document.getElementById('profileCanvas').addEventListener('click',handleProfileCanvasClick);
 document.getElementById('profileCanvasBig').addEventListener('click',handleProfileCanvasClick);
 // ② 拡大表示
 document.getElementById('btnProfileZoom').onclick=()=>{
   if(!profileData){
-    document.getElementById('clickInfo').textContent='拡大表示する断面図がありません。断面図モードで2点以上をクリックしてください。';
+    document.getElementById('clickInfo').textContent='高低差表示を拡大するには、先にルートの始点と終点を指定してください。';
     return;
   }
   document.getElementById('profileDialog').showModal();
@@ -1007,7 +1092,7 @@ document.getElementById('btnProfileClose').onclick=()=>document.getElementById('
 // ③ 公共交通リンクアウト(Google Maps URLs・transitモード)
 document.getElementById('btnTransit').onclick=()=>{
   if(profilePts.length<2){
-    document.getElementById('clickInfo').textContent='公共交通検索には、断面図モードで始点と終点（2点以上）をクリックしてください。';
+    document.getElementById('clickInfo').textContent='Google Mapを開くには、先にルートの始点と終点を指定してください。';
     return;
   }
   const o=profilePts[0],dst=profilePts[profilePts.length-1];
@@ -1015,12 +1100,7 @@ document.getElementById('btnTransit').onclick=()=>{
   window.open(url,'_blank','noopener');
   document.getElementById('clickInfo').textContent='Googleマップの乗換案内を新しいタブで開きました。';
 };
-updateMapboxStatus(
-  MAPBOX_TOKEN
-    ?'Mapbox public token設定済み。徒歩・車ルートを利用できます。'
-    :'徒歩・車ルートは MAPBOX_TOKEN 設定後に利用できます。',
-  !!MAPBOX_TOKEN
-);
+updateRouteActionState();
 
 </script>
 </body>
