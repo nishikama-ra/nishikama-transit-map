@@ -100,7 +100,7 @@
     <div id="legendLabels"><span>0m</span><span>10</span><span>20</span><span>30</span><span>50</span><span>70</span><span>100m+</span></div>
 
     <h2>ルート作成・高低差表示</h2>
-    <div id="clickInfo">地図上の調べたい場所をクリックしてください。バス停・駅はクリックすると詳細を表示します。</div>
+    <div id="clickInfo">地図上の調べたい場所をクリックしてください。ルート作成中はバス停・駅も地点として選択でき、通常時は詳細を表示します。</div>
 
     <div class="tool-card">
       <div class="tool-card-title">ルート作成</div>
@@ -583,10 +583,17 @@ function buildAccess(){
       color:st.rail?'#222':'#666',
       weight:st.rail?2:1,
       bubblingMouseEvents:false
-    }).bindTooltip(`${st.n}：${selHub==='total'?'3拠点計':HUBS[selHub].n+'へ'} ${fmt(f)}`,{direction:'top'})
-      .bindPopup(stopPopup(st));
-    m.on('popupopen',async e=>{
-      const pe=e.popup.getElement();
+    }).bindTooltip(`${st.n}：${selHub==='total'?'3拠点計':HUBS[selHub].n+'へ'} ${fmt(f)}`,{direction:'top'});
+    const stopLatLng=L.latLng(st.ll);
+    const popup=L.popup().setContent(stopPopup(st));
+    m.on('click',async()=>{
+      if(mode==='profile'){
+        map.closePopup();
+        await addRoutePoint(stopLatLng);
+        return;
+      }
+      popup.setLatLng(stopLatLng).openOn(map);
+      const pe=popup.getElement();
       let h=null;
       try{ h=await elevAt(st.ll[0],st.ll[1]); }catch(err){ h=null; }
       const el=pe && pe.querySelector('.elevslot');
